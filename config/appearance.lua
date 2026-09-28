@@ -43,6 +43,8 @@ return {
    command_palette_rows = 25,
 
    -- window
+   initial_cols = 150,
+   initial_rows = 40,
    window_background_opacity = 0.85,
    window_decorations = 'INTEGRATED_BUTTONS | RESIZE',
    window_padding = {

@@ -13,6 +13,38 @@ elseif platform.is_win or platform.is_linux then
    mod.SUPER_REV = 'ALT|CTRL'
 end
 
+-- cycles panes within the current tab; falls back to switching tabs once
+-- there's only one pane left to cycle through
+local function cycle_pane_or_tab(direction)
+   return wezterm.action_callback(function(window, pane)
+      local panes = pane:tab():panes()
+      if #panes > 1 then
+         local current_id = pane:pane_id()
+         for i, p in ipairs(panes) do
+            if p:pane_id() == current_id then
+               local next_index = ((i - 1 + direction) % #panes) + 1
+               panes[next_index]:activate()
+               return
+            end
+         end
+      end
+      window:perform_action(act.ActivateTabRelative(direction), pane)
+   end)
+end
+
+-- closes just the current pane if the tab has more than one; otherwise
+-- closes the whole tab
+local function close_pane_or_tab()
+   return wezterm.action_callback(function(window, pane)
+      local panes = pane:tab():panes()
+      if #panes > 1 then
+         window:perform_action(act.CloseCurrentPane({ confirm = false }), pane)
+      else
+         window:perform_action(act.CloseCurrentTab({ confirm = false }), pane)
+      end
+   end)
+end
+
 -- stylua: ignore
 ---@type Key[]
 local keys = {
@@ -65,13 +97,17 @@ local keys = {
    -- tabs: spawn+close
    { key = 't',          mods = mod.SUPER,     action = act.SpawnTab('DefaultDomain') },
    { key = 't',          mods = mod.SUPER_REV, action = act.SpawnTab({ DomainName = 'wsl:ubuntu-fish' }) },
+   { key = 't',          mods = 'CTRL',        action = act.SpawnTab('DefaultDomain') },
    { key = 'w',          mods = mod.SUPER_REV, action = act.CloseCurrentTab({ confirm = false }) },
+   { key = 'w',          mods = 'CTRL|SHIFT',  action = close_pane_or_tab() },
 
    -- tabs: navigation
    { key = '[',          mods = mod.SUPER,     action = act.ActivateTabRelative(-1) },
    { key = ']',          mods = mod.SUPER,     action = act.ActivateTabRelative(1) },
    { key = '[',          mods = mod.SUPER_REV, action = act.MoveTabRelative(-1) },
    { key = ']',          mods = mod.SUPER_REV, action = act.MoveTabRelative(1) },
+   { key = 'Tab',        mods = 'CTRL',        action = cycle_pane_or_tab(1) },
+   { key = 'Tab',        mods = 'CTRL|SHIFT',  action = cycle_pane_or_tab(-1) },
 
    -- tab: title
    { key = '0',          mods = mod.SUPER,     action = act.EmitEvent('tabs.manual-update-tab-title') },
@@ -183,6 +219,16 @@ local keys = {
       key = [[\]],
       mods = mod.SUPER_REV,
       action = act.SplitHorizontal({ domain = 'CurrentPaneDomain' }),
+   },
+   {
+      key = '(',
+      mods = 'CTRL|SHIFT',
+      action = act.SplitHorizontal({ domain = 'CurrentPaneDomain' }),
+   },
+   {
+      key = ')',
+      mods = 'CTRL|SHIFT',
+      action = act.SplitVertical({ domain = 'CurrentPaneDomain' }),
    },
 
    -- panes: zoom+close pane
