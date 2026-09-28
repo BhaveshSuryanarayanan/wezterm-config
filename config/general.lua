@@ -6,7 +6,7 @@ return {
    exit_behavior_messaging = 'Verbose',
    status_update_interval = 1000,
    audible_bell = 'Disabled',
-
+   enable_wayland = false, -- native Wayland move/resize is unreliable on GNOME/Mutter; use XWayland instead
    scrollback_lines = 20000,
 
    hyperlink_rules = {
